@@ -1,16 +1,13 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 # code to make mock Lya spectra following McDonald et al. (2006)
 # copied from c++ code in Cosmology/LNLyaF
-
 
 def power_amplitude(z):
   """function that affects the evolution of 1D power with z"""
   return 58.6*pow((1+z)/4.0,-2.82)
 
 def tau_amplitude(z):
-  """function that affects the evolution of the optical depth with z"""
   return 0.374*pow((1+z)/4.0,5.10)
 
 def power_kms(z,k_kms,dv_kms=10.0,simple=False):
@@ -76,52 +73,14 @@ def get_gaussian_field(z_c, N2, dv_kms, seed=666):
   delta = np.fft.irfft(modes) * np.sqrt(N/dv_kms)
   return delta
 
-
-# central redshift
-z_c = 3.0
-# number of cells (power of two)
-N2 = 15
-# cell width (in km/s)
-dv_kms=10
-# get redshift for each cell
-z = get_redshifts(z_c,N2,dv_kms)
-
-# get Gaussian field
-delta = get_gaussian_field(z_c,N2,dv_kms)
-var_delta = np.var(delta)
-print('mean delta =', np.mean(delta))
-print('var delta =', var_delta)
-plt.plot(z,delta)
-plt.xlabel('z')
-plt.ylabel('Gaussian field')
-plt.show()
-
-# from Gaussian field to lognormal density
-density = get_density(z_c,var_delta,z,delta)
-print('mean density =', np.mean(density))
-print('var density =', np.var(density))
-plt.semilogy(z,density)
-plt.xlabel('z')
-plt.ylabel('density')
-plt.show()
-
-# from lognormal density to optical depth
-tau = get_tau(z,density)
-print('mean tau =', np.mean(tau))
-print('var tau =', np.var(tau))
-plt.semilogy(z,tau)
-plt.xlabel('z')
-plt.ylabel('optical depth')
-plt.show()
-
-# from optical depth to flux
-flux = get_flux(z_c,tau)
-print('mean flux =', np.mean(flux))
-print('var flux =', np.var(flux))
-plt.plot(z,flux)
-plt.xlabel('z')
-plt.ylabel('transmitted flux fraction')
-plt.xlim(3.0,3.1)
-plt.show()
+def get_lya_skewer(z_c=3.0, N2=15, dv_kms=10.0, seed=666):
+  z = get_redshifts(z_c,N2,dv_kms)
+  delta = get_gaussian_field(z_c,N2,dv_kms,seed)
+  var_delta = np.var(delta)
+  density = get_density(z_c,var_delta,z,delta)
+  tau = get_tau(z,density)
+  flux = get_flux(z_c,tau)
+  wave = 1215.67*(1+z)
+  return wave, flux
 
 
