@@ -12,7 +12,7 @@ def tau_amplitude(z):
 
 def power_kms(z,k_kms,dv_kms=10.0,simple=False):
   # option for debugging
-  if simple: return 100.0
+  if simple: return np.ones_like(k_kms)*100.0
   # power from McDonald et al. (2006)
   A = power_amplitude(z)
   k1 = 0.001
@@ -51,7 +51,7 @@ def get_redshifts(z_c,N2,dv_kms):
   z = (1+z_c)*pow(1-(i-N/2+1)*dv_kms/2.0/c_kms,-2)-1
   return z
 
-def get_gaussian_field(z_c, N2, dv_kms, seed=666):
+def get_gaussian_field(z_c, N2, dv_kms, seed=666, simple=False):
   # length of array
   N = np.power(2,N2)
   # number of Fourier modes
@@ -64,19 +64,26 @@ def get_gaussian_field(z_c, N2, dv_kms, seed=666):
   modes[1:-1].imag = gen.normal(size=NF-2)
   # get frequencies (wavenumbers in units of s/km)
   k_kms = np.fft.rfftfreq(N)*2*np.pi/dv_kms
+  # get power evaluated at each k
+  P_kms = power_kms(z_c,k_kms,simple)
   # normalize to desired power
-  modes[-1:1].real *= np.sqrt(power_kms(z_c,k_kms[-1:1]))
+  modes[-1:1].real *= np.sqrt(P_kms[-1:1])
   modes[-1:1].imag = 0
-  modes[1:-1].real *= np.sqrt(0.5*power_kms(z_c,k_kms[1:-1]))
-  modes[1:-1].imag *= np.sqrt(0.5*power_kms(z_c,k_kms[1:-1]))
+  modes[1:-1].real *= np.sqrt(0.5*P_kms[1:-1])
+  modes[1:-1].imag *= np.sqrt(0.5*P_kms[1:-1])
   # inverse FFT to get (normalized) delta field
   delta = np.fft.irfft(modes) * np.sqrt(N/dv_kms)
-  return delta
+  # compute also expected variance, will be used in lognormal transform
+  dk_kms = 2*np.pi/(N*dv_kms)
+  var_delta=np.sum(P_kms)*dk_kms/np.pi
+  # Nyquist frecuency is counted twice in variance, and it should not be
+  var_delta *= NF/(NF+1)
+  return delta, var_delta
 
 def get_lya_skewer(z_c=3.0, N2=15, dv_kms=10.0, seed=666):
   z = get_redshifts(z_c,N2,dv_kms)
-  delta = get_gaussian_field(z_c,N2,dv_kms,seed)
-  var_delta = np.var(delta)
+  delta, var_delta = get_gaussian_field(z_c,N2,dv_kms,seed)
+  #var_delta = np.var(delta)
   density = get_density(z_c,var_delta,z,delta)
   tau = get_tau(z,density)
   flux = get_flux(z_c,tau)
