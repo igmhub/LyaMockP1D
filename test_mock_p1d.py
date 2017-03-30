@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import mock_p1d as mock
+import lya_mock_p1d as mock
 
 # central redshift
 z_c = 3.0
@@ -12,10 +12,10 @@ dv_kms=10
 z = mock.get_redshifts(z_c,N2,dv_kms)
 
 # get Gaussian field
-delta = mock.get_gaussian_field(z_c,N2,dv_kms)
-var_delta = np.var(delta)
+delta, var_delta = mock.get_gaussian_field(z_c,N2,dv_kms)
 print('mean delta =', np.mean(delta))
-print('var delta =', var_delta)
+print('var delta =', np.var(delta))
+print('expected var delta =',var_delta)
 plt.plot(z,delta)
 plt.xlabel('z')
 plt.ylabel('Gaussian field')
