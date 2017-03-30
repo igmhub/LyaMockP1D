@@ -4,16 +4,18 @@ import numpy as np
 # copied from c++ code in Cosmology/LNLyaF
 
 def power_amplitude(z):
-  """function that affects the evolution of 1D power with z"""
+  """adds redshift evolution to the 1D power spectrum"""
   return 58.6*pow((1+z)/4.0,-2.82)
 
 def tau_amplitude(z):
+  """adds redshift evolution to the mean optical depth (tau)"""
   return 0.374*pow((1+z)/4.0,5.10)
 
 def power_kms(z,k_kms,dv_kms=10.0,simple=False):
-  # option for debugging
+  """at a fixed redshift z, compute P1D at different wavenumbers k (in s/km)"""
+  # option for debugging (return constant power)
   if simple: return np.ones_like(k_kms)*100.0
-  # power from McDonald et al. (2006)
+  # power used to make mocks in from McDonald et al. (2006)
   A = power_amplitude(z)
   k1 = 0.001
   n = 0.7
@@ -26,20 +28,23 @@ def power_kms(z,k_kms,dv_kms=10.0,simple=False):
   return P
 
 def get_density(z_c,var_delta,z,delta):
+  """transform Gaussian field delta to lognormal density, at each z"""
   tau_pl=2.0
   # relative amplitude 
   rel_amp = power_amplitude(z)/power_amplitude(z_c)
   return np.exp(tau_pl*(delta*np.sqrt(rel_amp)-0.5*var_delta*rel_amp))
 
 def get_tau(z,density):
+  """transform lognormal density to optical depth, at each z"""
   A = tau_amplitude(z)
   return A*density
 
 def get_flux(z_c,tau):
+  """transform optical depth to transmitted flux fraction"""
   return np.exp(-tau)
 
 def get_redshifts(z_c,N2,dv_kms):
-  """get redshift for each cell in the array"""
+  """get redshift for each cell in the array (centered at z_c)"""
   N = np.power(2,N2)
   L_kms = N * dv_kms
   c_kms = 2.998e5
@@ -52,6 +57,7 @@ def get_redshifts(z_c,N2,dv_kms):
   return z
 
 def get_gaussian_field(z_c, N2, dv_kms, seed=666, simple=False):
+  """generate Gaussian field at redshift z_c"""
   # length of array
   N = np.power(2,N2)
   # number of Fourier modes
@@ -81,6 +87,7 @@ def get_gaussian_field(z_c, N2, dv_kms, seed=666, simple=False):
   return delta, var_delta
 
 def get_lya_skewer(z_c=3.0, N2=15, dv_kms=10.0, seed=666):
+  """directly compute flux skewer, using functions above"""
   z = get_redshifts(z_c,N2,dv_kms)
   delta, var_delta = get_gaussian_field(z_c,N2,dv_kms,seed)
   #var_delta = np.var(delta)
