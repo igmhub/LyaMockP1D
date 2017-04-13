@@ -73,43 +73,40 @@ class MockMaker(object):
         z = (1+self.z_c)*pow(1-(i-N/2+1)*self.dv_kms/2.0/c_kms,-2)-1
         return z
 
-    def get_gaussian_field(self,Ns=1,new_seed=None):
+    def get_gaussian_fields(self,Ns=1,new_seed=None):
         """Generate Ns Gaussian fields at redshift z_c.
 
           If new_seed is set, it will reset random generator with it."""
         if new_seed:
             self.gen = np.random.RandomState(new_seed)
-        if Ns > 1: 
-            print('implement Ns>1')
-            raise SystemExit
         # length of array
         N = self.N
         # number of Fourier modes
         NF=int(N/2+1)
-        # generate random Fourier modes
-        modes = np.empty(NF,dtype=complex)
-        # modes = np.empty([Nmocks,NF], dtype=complex)
-        modes[:].real = self.gen.normal(size=NF)
-        modes[1:-1].imag = self.gen.normal(size=NF-2)
         # get frequencies (wavenumbers in units of s/km)
         k_kms = np.fft.rfftfreq(N)*2*np.pi/self.dv_kms
         # get power evaluated at each k
         P_kms = power_kms(self.z_c,k_kms,self.dv_kms,self.white_noise)
-        # normalize to desired power
-        modes[-1:1].real *= np.sqrt(P_kms[-1:1])
-        modes[-1:1].imag = 0
-        modes[1:-1].real *= np.sqrt(0.5*P_kms[1:-1])
-        modes[1:-1].imag *= np.sqrt(0.5*P_kms[1:-1])
-        # inverse FFT to get (normalized) delta field
-        delta = np.fft.irfft(modes) * np.sqrt(N/self.dv_kms)
         # compute also expected variance, will be used in lognormal transform
         dk_kms = 2*np.pi/(N*self.dv_kms)
         var_delta=np.sum(P_kms)*dk_kms/np.pi
         # Nyquist frecuency is counted twice in variance, and it should not be
         var_delta *= NF/(NF+1)
+
+        # generate random Fourier modes
+        modes = np.empty([Ns,NF], dtype=complex)
+        modes[:].real = np.reshape(self.gen.normal(size=Ns*NF),[Ns,NF])
+        modes[:].imag = np.reshape(self.gen.normal(size=Ns*NF),[Ns,NF])
+        # normalize to desired power (and enforce real for i=0, i=NF-1)
+        modes[:,0] = modes[:,0].real * np.sqrt(P_kms[0])
+        modes[:,-1] = modes[:,-1].real * np.sqrt(P_kms[-1])
+        modes[:,1:-1] *= np.sqrt(0.5*P_kms[1:-1])
+        # inverse FFT to get (normalized) delta field
+        delta = np.fft.irfft(modes) * np.sqrt(N/self.dv_kms)
+
         return delta, var_delta
 
-    def get_lya_skewer(self,Ns=1,new_seed=None):
+    def get_lya_skewers(self,Ns=10,new_seed=None):
         """Return Ns Lyman alpha skewers (wavelength, flux). 
         
           If new_seed is set, it will reset random generator with it."""
@@ -117,7 +114,7 @@ class MockMaker(object):
             self.gen = np.random.RandomState(new_seed)
         # get redshift for all cells in the skewer    
         z = self.get_redshifts()
-        delta, var_delta = self.get_gaussian_field(Ns)
+        delta, var_delta = self.get_gaussian_fields(Ns)
         #var_delta = np.var(delta)
         density = self.get_density(var_delta,z,delta)
         tau = get_tau(z,density)

@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lya_mock_p1d as mock
 
+# number of skewers to generate 
+Ns=5
+
 # number of cells (power of two)
 N2 = 15
 # cell width (in km/s)
@@ -17,12 +20,12 @@ mock_maker=mock.MockMaker(N2,dv_kms,seed,white_noise)
 # get redshift for each cell
 z = mock_maker.get_redshifts()
 
-# get Gaussian field
-delta, var_delta = mock_maker.get_gaussian_field()
+# get Gaussian fields
+delta, var_delta = mock_maker.get_gaussian_fields(Ns)
 print('mean delta =', np.mean(delta))
 print('var delta =', np.var(delta))
 print('expected var delta =',var_delta)
-plt.plot(z,delta)
+plt.plot(z,delta[0])
 plt.xlabel('z')
 plt.ylabel('Gaussian field')
 plt.show()
@@ -31,7 +34,7 @@ plt.show()
 density = mock_maker.get_density(var_delta,z,delta)
 print('mean density =', np.mean(density))
 print('var density =', np.var(density))
-plt.semilogy(z,density)
+plt.semilogy(z,density[0])
 plt.xlabel('z')
 plt.ylabel('density')
 plt.show()
@@ -40,7 +43,7 @@ plt.show()
 tau = mock.get_tau(z,density)
 print('mean tau =', np.mean(tau))
 print('var tau =', np.var(tau))
-plt.semilogy(z,tau)
+plt.semilogy(z,tau[0])
 plt.xlabel('z')
 plt.ylabel('optical depth')
 plt.show()
@@ -49,17 +52,16 @@ plt.show()
 flux = np.exp(-tau)
 print('mean flux =', np.mean(flux))
 print('var flux =', np.var(flux))
-plt.plot(z,flux)
+plt.plot(z,flux[0])
 plt.xlabel('z')
 plt.ylabel('transmitted flux fraction')
 plt.xlim(3.0,3.1)
 plt.show()
 
 # generate multiple mock spectra
-for i in range(3):
-    # get everything on one shot
-    wave, flux = mock_maker.get_lya_skewer()
-    plt.plot(wave,flux)
+wave, flux = mock_maker.get_lya_skewers(Ns)
+for i in range(Ns):
+    plt.plot(wave,flux[i])
     plt.xlabel('wave')
     plt.ylabel('transmitted flux fraction')
     plt.xlim(4000,4200)
