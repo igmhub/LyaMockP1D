@@ -46,7 +46,7 @@ plt.ylabel('optical depth')
 plt.show()
 
 # from optical depth to flux
-flux = mock.get_flux(tau)
+flux = np.exp(-tau)
 print('mean flux =', np.mean(flux))
 print('var flux =', np.var(flux))
 plt.plot(z,flux)
